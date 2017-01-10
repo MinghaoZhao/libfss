@@ -3,6 +3,7 @@ package main
 import (
   "os"
   "gopkg.in/gin-gonic/gin.v1"
+  "../libfss"
 )
 
 func main() {
