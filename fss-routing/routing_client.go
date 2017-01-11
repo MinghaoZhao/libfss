@@ -12,7 +12,7 @@ import (
 
 const (
   CONN_HOST = "localhost"
-  CONN_PORT = 8000
+  CONN_START_PORT = 8000
 )
 
 func main() {
@@ -27,21 +27,17 @@ func makeQuery(node int, queryType string) {
 
   ans0 := queryServer(queryType, packageKeys(fssKeys[0]), packageKeys(client.PrfKeys), strconv.Itoa(int(client.NumBits)), 0)
   ans1 := queryServer(queryType, packageKeys(fssKeys[1]), packageKeys(client.PrfKeys), strconv.Itoa(int(client.NumBits)), 1)
-  fmt.Println(ans0,ans1)
+  fmt.Println("combined answer: ", ans0 + ans1)
 }
 
 func queryServer(queryType, fssKey, prfKeys, numBits string, serverNum int) int {
-  fmt.Println("numBits: ", numBits)
-  address := "http://"+CONN_HOST+":"+strconv.Itoa(8000+serverNum)+"/"+queryType+"/"+fssKey+"/"+prfKeys+"/"+numBits
-  fmt.Println(address)
-  resp, _ := http.Get(address)
+  port := strconv.Itoa(CONN_START_PORT+serverNum)
+  resp, _ := http.Get("http://"+CONN_HOST+":"+port+"/"+queryType+"/"+fssKey+"/"+prfKeys+"/"+numBits)
   defer resp.Body.Close()
   body, _ := ioutil.ReadAll(resp.Body)
   var answer map[string]string
   _ = json.Unmarshal(body, &answer)
-  fmt.Println("answer: ", answer)  
   output, _ := strconv.Atoi(answer["ans"])
-  fmt.Println("output: ",output) 
   return output
 }
 
