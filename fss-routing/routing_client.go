@@ -21,9 +21,9 @@ func main() {
 
 func makeQuery(node int, queryType string) {
   // Generate fss Keys on client
-  client := libfss.ClientInitialize(6)
+  client := libfss.ClientInitialize(20)
   // Test with if x = 10, evaluate to 2: figure out numbers based on node in the future
-  fssKeys := client.GenerateTreePF(10, 2) 
+  fssKeys := client.GenerateTreePF(191397, 1) 
 
   ans0 := queryServer(queryType, packageKeys(fssKeys[0]), packageKeys(client.PrfKeys), strconv.Itoa(int(client.NumBits)), 0)
   ans1 := queryServer(queryType, packageKeys(fssKeys[1]), packageKeys(client.PrfKeys), strconv.Itoa(int(client.NumBits)), 1)
