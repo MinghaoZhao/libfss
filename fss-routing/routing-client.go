@@ -1,12 +1,18 @@
 package main
 
 import (
-  // "net/http"
-  // "io/ioutil"
+  "net/http"
+  "io/ioutil"
   "fmt"
+  "strconv"
+  "../libfss"
   "encoding/json"
   "encoding/base64"
-  "../libfss"
+)
+
+const (
+  CONN_HOST = "localhost"
+  CONN_PORT = 8000
 )
 
 func main() {
@@ -19,53 +25,27 @@ func makeQuery(node int, queryType string) {
   // Test with if x = 10, evaluate to 2: figure out numbers based on node in the future
   fssKeys := client.GenerateTreePF(10, 2) 
 
-  fmt.Println(fssKeys)
-  fmt.Println(client.PrfKeys)
-  encodedFssKey0 := packageKeys(fssKeys[0])
-  encodedFssKey1 := packageKeys(fssKeys[1])
-  encodedPrfKeys := packageKeys(client.PrfKeys)
+  ans0 := queryServer(queryType, packageKeys(fssKeys[0]), packageKeys(client.PrfKeys), strconv.Itoa(int(client.NumBits)), 0)
+  ans1 := queryServer(queryType, packageKeys(fssKeys[1]), packageKeys(client.PrfKeys), strconv.Itoa(int(client.NumBits)), 1)
+  fmt.Println(ans0,ans1)
+}
 
-
-  /*
-  marshalledFssKey, _ := json.Marshal(fssKeys[0])
-  encodedFssKey := base64.StdEncoding.EncodeToString([]byte(marshalledFssKey))
-  */
-
-  // simulated, on server side:
-  var newKey0 libfss.FssKeyEq2P
-  _ = json.Unmarshal(decodeKey(encodedFssKey0), &newKey0)
-  var newKey1 libfss.FssKeyEq2P
-  _ = json.Unmarshal(decodeKey(encodedFssKey1), &newKey1)
-  fmt.Println(newKey0, newKey1)
-  var newPrfKey [][]byte
-  _ = json.Unmarshal(decodeKey(encodedPrfKeys), &newPrfKey)
-  fmt.Println(newPrfKey)
-
-/*
-  fServer := libfss.ServerInitialize(client.PrfKeys, client.NumBits)
-  ans := fServer.EvaluatePF(0, newKey, 10)
-  fmt.Println(ans)
-
-  resp, _ := http.Get("http://localhost:8000/"+queryType+"/"+encodedFssKey)
-
+func queryServer(queryType, fssKey, prfKeys, numBits string, serverNum int) int {
+  fmt.Println("numBits: ", numBits)
+  address := "http://"+CONN_HOST+":"+strconv.Itoa(8000+serverNum)+"/"+queryType+"/"+fssKey+"/"+prfKeys+"/"+numBits
+  fmt.Println(address)
+  resp, _ := http.Get(address)
   defer resp.Body.Close()
   body, _ := ioutil.ReadAll(resp.Body)
-  var newNode map[string]interface{}
-  _ = json.Unmarshal(body, &newNode)
-  fmt.Println(node)
-*/
-  // do again for server 2, port 8001
+  var answer map[string]string
+  _ = json.Unmarshal(body, &answer)
+  fmt.Println("answer: ", answer)  
+  output, _ := strconv.Atoi(answer["ans"])
+  fmt.Println("output: ",output) 
+  return output
 }
 
 func packageKeys(key interface{}) string {
   marshalledKey, _ := json.Marshal(key)
   return base64.StdEncoding.EncodeToString(marshalledKey)
-}
-
-
-
-func unpackagePrfKey(str string) {
-  dec, _ := base64.StdEncoding.DecodeString(str)
-  var newkey libfss.FssKeyEq2P
-  _ = json.Unmarshal(dec, &newkey)
 }

@@ -2,8 +2,12 @@ package main
 
 import (
   "os"
-  "gopkg.in/gin-gonic/gin.v1"
+  "fmt"
   "../libfss"
+  "strconv"
+  "encoding/json"
+  "encoding/base64"
+  "gopkg.in/gin-gonic/gin.v1"
 )
 
 func main() {
@@ -12,10 +16,12 @@ func main() {
       port = "8000"
     }
     r := gin.Default()
-    r.GET("/nodes/:key", func(c *gin.Context) {
+    r.GET("/nodes/:fssKey/:prfKeys/:numBits", func(c *gin.Context) {
+        ans := evalQuery(c.Param("fssKey"), c.Param("prfKeys"), c.Param("numBits"), port)
         c.JSON(200, gin.H{
-            "key": c.Param("key"),
+            "ans": strconv.Itoa(ans),
             "qtype": "nodes",
+            "key": c.Param("fssKey"),
         })
     })
     r.GET("/supernodes/:key", func(c *gin.Context) {
@@ -27,14 +33,19 @@ func main() {
     r.Run("localhost:" + port)
 }
 
-func evalKey(enc string) {
-  var key libfss.FssKeyEq2P
-  _ = json.Unmarshal(decodeKey(enc), &key)
-  fmt.Println(key)
-
-  // Simulate server: setup needs prfkeys, numbits
-  // fServer := libfss.ServerInitialize(fClient.PrfKeys, fClient.NumBits)
-  // ans = fServer.EvaluatePF(0, fssKeys[0], 10)
+func evalQuery(FssKey, PrfKeys, NumBits, port string) int {
+  // Initialize fss server
+  var parsedPrfKeys [][]byte
+  _ = json.Unmarshal(decodeKey(PrfKeys), &parsedPrfKeys)
+  parsedNumBits, _ := strconv.ParseUint(NumBits, 10, 32)
+  Server := libfss.ServerInitialize(parsedPrfKeys, uint(parsedNumBits))
+  
+  // Evaluate key on server. TODO: evaluate based on port #
+  var parsedFssKey libfss.FssKeyEq2P
+  _ = json.Unmarshal(decodeKey(FssKey), &parsedFssKey)
+  ans := Server.EvaluatePF(0, parsedFssKey, 10)
+  fmt.Println("answer: ",ans)
+  return ans
 }
 
 func decodeKey(str string) []byte {
