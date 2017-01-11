@@ -8,6 +8,9 @@ import (
   "encoding/json"
   "encoding/base64"
   "gopkg.in/gin-gonic/gin.v1"
+
+  "bufio"
+  "strings"
 )
 
 const (
@@ -43,15 +46,16 @@ func evalQuery(fssKey, prfKeys, numBits, port string) int {
   _ = json.Unmarshal(decodeKey(prfKeys), &parsedPrfKeys)
   parsedNumBits, _ := strconv.ParseUint(numBits, 10, 32)
   Server := libfss.ServerInitialize(parsedPrfKeys, uint(parsedNumBits))
-  
-  // Evaluate with server number and FSS key:
+
   // Get server number given the port
   portNum, _ := strconv.Atoi(port)
   serverNum := byte(portNum - CONN_START_PORT)
+  // Get FSS Key
   var parsedFssKey libfss.FssKeyEq2P
   _ = json.Unmarshal(decodeKey(fssKey), &parsedFssKey)
-  ans := Server.EvaluatePF(serverNum, parsedFssKey, 10)
 
+  // Evaluate PF over all values of DB
+  ans := readEdgeFile(Server, serverNum, parsedFssKey)
   fmt.Println("server number: ",serverNum)
   fmt.Println("answer: ",ans)
   return ans
@@ -60,4 +64,19 @@ func evalQuery(fssKey, prfKeys, numBits, port string) int {
 func decodeKey(str string) []byte {
   dec, _ := base64.StdEncoding.DecodeString(str)
   return dec
+}
+
+func readEdgeFile(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyEq2P) int {
+  var ans int = 0
+  file, _ := os.Open("./NY_edge_grid.txt")
+  defer file.Close()
+  scanner := bufio.NewScanner(file)
+  for scanner.Scan() {
+    line := strings.Split(scanner.Text(), " ")
+    node, _ := strconv.Atoi(line[1])
+    weight, _ := strconv.Atoi(line[3])
+    ans += server.EvaluatePF(serverNum, fssKey, uint(node))*weight
+  }
+  fmt.Println(ans)
+  return ans
 }
