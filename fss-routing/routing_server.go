@@ -8,7 +8,6 @@ import (
   "encoding/json"
   "encoding/base64"
   "gopkg.in/gin-gonic/gin.v1"
-
   "bufio"
   "strings"
 )
@@ -41,7 +40,7 @@ func main() {
 }
 
 func evalQuery(fssKey, prfKeys, numBits, port string) int {
-  // Initialize fss server with PRF keys and number of bits:
+  // Initialize fss server with PRF keys and number of bits
   var parsedPrfKeys [][]byte
   _ = json.Unmarshal(decodeKey(prfKeys), &parsedPrfKeys)
   parsedNumBits, _ := strconv.ParseUint(numBits, 10, 32)
@@ -50,13 +49,13 @@ func evalQuery(fssKey, prfKeys, numBits, port string) int {
   // Get server number given the port
   portNum, _ := strconv.Atoi(port)
   serverNum := byte(portNum - CONN_START_PORT)
+
   // Get FSS Key
   var parsedFssKey libfss.FssKeyEq2P
   _ = json.Unmarshal(decodeKey(fssKey), &parsedFssKey)
 
   // Evaluate PF over all values of DB
   ans := readEdgeFile(Server, serverNum, parsedFssKey)
-  fmt.Println("server number: ",serverNum)
   fmt.Println("answer: ",ans)
   return ans
 }
@@ -71,12 +70,13 @@ func readEdgeFile(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyEq2P) 
   file, _ := os.Open("./NY_edge_grid.txt")
   defer file.Close()
   scanner := bufio.NewScanner(file)
+
+  // Read file line by line, on each line evaluate PF on node id
   for scanner.Scan() {
     line := strings.Split(scanner.Text(), " ")
     node, _ := strconv.Atoi(line[1])
     weight, _ := strconv.Atoi(line[3])
     ans += server.EvaluatePF(serverNum, fssKey, uint(node))*weight
   }
-  fmt.Println(ans)
   return ans
 }
