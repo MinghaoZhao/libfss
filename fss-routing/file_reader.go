@@ -36,11 +36,12 @@ func readFetchLargeValue(server *libfss.Fss, serverNum byte, fssKey libfss.FssKe
 
   // Read file line by line, on each line evaluate PF on key
   for scanner.Scan() {
-    line := strings.Split(scanner.Text(), " ")
-    key, _ := strconv.Atoi(line[0])
-    // edges := line[1:]
-    // byteArray := []byte(edges)
-    byteArray := []byte(scanner.Text())
+    // line := strings.Split(scanner.Text(), " ")
+    split := strings.SplitAfterN(scanner.Text(), " ", 2)
+    fmt.Println("split: ", split)
+    key, _ := strconv.Atoi(strings.TrimSpace(split[0]))
+
+    byteArray := []byte(split[1])
     fssVal := server.EvaluatePF(serverNum, fssKey, uint(key))
     for i := range byteArray {
       ans[i] += int(byteArray[i]) * fssVal
