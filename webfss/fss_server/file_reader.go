@@ -5,7 +5,7 @@ import (
   "strconv"
   "bufio"
   "strings"
-  "../libfss"
+  "github.com/cathieyun/libfss/libfss"
   "fmt"
 )
 

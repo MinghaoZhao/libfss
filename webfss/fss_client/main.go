@@ -5,11 +5,12 @@ import (
   "io/ioutil"
   "fmt"
   "strconv"
-  "../libfss"
+  "github.com/cathieyun/libfss/libfss"
   "encoding/json"
   "encoding/base64"
   "time"
   "strings"
+  "bytes"
 )
 
 const (
@@ -17,10 +18,10 @@ const (
   CONN_START_PORT = 8000
 )
 
-// func main() {
-//   // makeQuery(0, 191397, 20)
-//   makeQuery(1, 10, 20)
-// }
+func main() {
+  // makeQuery(0, 191397, 20)
+  makeQuery(1, 10, 20)
+}
 
 func makeQuery(queryType int, lookup uint, size uint) string {
   t0 := time.Now()
@@ -41,11 +42,9 @@ func makeQuery(queryType int, lookup uint, size uint) string {
   if queryType == 0 {
     int0, _ := strconv.Atoi(ans0)
     int1, _ := strconv.Atoi(ans1)
-    fmt.Println("combined answer: ", int0 + int1)
+    fmt.Println("answer for querytype 0: ", int0 + int1)
     return strconv.Itoa(int0 + int1)
   } else if queryType == 1 {
-    // fmt.Println("\n\nans0: ", ans0, "\n")
-    // fmt.Println("\n\nans1: ", ans1, "\n")
     received0 := strings.Split(ans0,",")
     received1 := strings.Split(ans1,",")
     parsed := make([]byte, len(received0))
@@ -54,7 +53,8 @@ func makeQuery(queryType int, lookup uint, size uint) string {
       num1, _ := strconv.Atoi(received1[i])
       parsed[i] = byte(num0 + num1)
     }
-    return string(parsed)
+    fmt.Println("answer for querytype 1: ",string(parsed))
+    return string(bytes.Trim(parsed, "\x00"))
   }
   return ""
 }
