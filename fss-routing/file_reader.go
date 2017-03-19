@@ -29,26 +29,31 @@ func readFetchSmallValue(server *libfss.Fss, serverNum byte, fssKey libfss.FssKe
 // Runs FSS on (matches) the 0th element of line, returns the 1st element.
 // Answer is base64-encoded int array, where each int represents an edge.
 func readFetchLargeValue(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyEq2P) string {
-  ans := make([]int, 1000) // TODO: make smarter
-  file, _ := os.Open("./routing_data/test.txt")
+  ans := make([]int, 50000) // TODO: make smarter
+  file, _ := os.Open("./routing_data/NY_zones.txt")
   defer file.Close()
   scanner := bufio.NewScanner(file)
 
+  maxBytes := 0
+
   // Read file line by line, on each line evaluate PF on key
   for scanner.Scan() {
-    // line := strings.Split(scanner.Text(), " ")
     split := strings.SplitAfterN(scanner.Text(), " ", 2)
     fmt.Println("split: ", split)
     key, _ := strconv.Atoi(strings.TrimSpace(split[0]))
 
     byteArray := []byte(split[1])
+    if len(byteArray) > maxBytes {
+      maxBytes = len(byteArray)
+    }
     fssVal := server.EvaluatePF(serverNum, fssKey, uint(key))
     for i := range byteArray {
       ans[i] += int(byteArray[i]) * fssVal
     }
 
   }
-  fmt.Println("answer before transmit: ", ans)
+  // fmt.Println("answer before transmit: ", ans)
+  fmt.Println("maxBytes: ", maxBytes)
   transmit := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(ans)), ","), "[]")
   return transmit
 }

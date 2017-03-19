@@ -19,7 +19,7 @@ const (
 
 func main() {
   // makeQuery(0, 191397, 20)
-  makeQuery(1, 2, 20)
+  makeQuery(1, 10, 20)
 }
 
 func makeQuery(queryType int, lookup uint, size uint) {
@@ -43,14 +43,15 @@ func makeQuery(queryType int, lookup uint, size uint) {
     int1, _ := strconv.Atoi(ans1)
     fmt.Println("combined answer: ", int0 + int1)
   } else if queryType == 1 {
-    fmt.Println("\n\nans0: ", ans0, "\n")
-    fmt.Println("\n\nans1: ", ans1, "\n")
+    // fmt.Println("\n\nans0: ", ans0, "\n")
+    // fmt.Println("\n\nans1: ", ans1, "\n")
     received0 := strings.Split(ans0,",")
     received1 := strings.Split(ans1,",")
     parsed := make([]byte, len(received0))
     for i := range received0 {
       num0, _ := strconv.Atoi(received0[i])
       num1, _ := strconv.Atoi(received1[i])
+      fmt.Println("num0, num1: \n",num0," ",num1)
       parsed[i] = byte(num0 + num1)
     }
     fmt.Println("parsed string: \n",string(parsed))
