@@ -13,6 +13,8 @@ import (
 const (
   CONN_HOST = "localhost"
   CONN_START_PORT = 8000
+  PRIME1 = 3
+  PRIME2 = 5
 )
 
 func main() {
@@ -43,15 +45,18 @@ func evalQuery(qtype, fssKey, prfKeys, numBits, port string) string {
 
   // Get FSS Key
   var parsedFssKey libfss.FssKeyEq2P
-  _ = json.Unmarshal(decodeKey(fssKey), &parsedFssKey)
+  _ = json.Unmarshal(decodeKey(fssKey), &parsedFssKey) 
 
+  ans := ""
   // Evaluate PF over all values of DB, DB file depends on qtype
   if qtype == "0" {
-    ans := readFetchSmallValue(Server, serverNum, parsedFssKey)    
+    ans = readOneFetchSmall(Server, serverNum, parsedFssKey, "./routing_data/NY_edge_grid.txt")    
   } else if qtype == "1" {
-    ans := readFetchLargeValue(Server, serverNum, parsedFssKey)
+    ans = readOneFetchLarge(Server, serverNum, parsedFssKey, "./routing_data/NY_zones.txt", 50000)
+  } else if qtype == "2" {
+    ans = readTwoFetchLarge(Server, serverNum, parsedFssKey, "./routing_data/NY_shortest_paths.txt", 2300)
   } else {
-    ans := "invalid query type"
+    ans = "invalid query type"
   }
   fmt.Println("answer: ",ans)
   return ans

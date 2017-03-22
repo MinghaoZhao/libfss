@@ -16,6 +16,8 @@ import (
 const (
   CONN_HOST = "localhost"
   CONN_START_PORT = 8000
+  PRIME1 = 3
+  PRIME2 = 5
 )
 
 func main() {
@@ -55,8 +57,23 @@ func makeQuery(queryType int, lookup uint, size uint) string {
     }
     fmt.Println("answer for querytype 1: ",string(parsed))
     return string(bytes.Trim(parsed, "\x00"))
+  } else if queryType == 2 {
+    received0 := strings.Split(ans0,",")
+    received1 := strings.Split(ans1,",")
+    parsed := make([]byte, len(received0))
+    for i := range received0 {
+      num0, _ := strconv.Atoi(received0[i])
+      num1, _ := strconv.Atoi(received1[i])
+      parsed[i] = byte(num0 + num1)
+    }
+    fmt.Println("answer for querytype 2: ",string(parsed))
+    return string(bytes.Trim(parsed, "\x00"))    
   }
   return ""
+}
+
+func combineTwoValues(val1 uint, val2 uint) uint {
+  return PRIME1^val1 + PRIME2^val2
 }
 
 func queryServer(c chan string, queryType, fssKey, prfKeys, numBits string, serverNum int) {

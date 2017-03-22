@@ -10,9 +10,9 @@ import (
 )
 
 // Runs FSS on (matches) the 1st element of line (key), returns the 3rd element (val).
-func readFetchSmallValue(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyEq2P) string {
+func readOneFetchSmall(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyEq2P, fileName string) string {
   var ans int = 0
-  file, _ := os.Open("./routing_data/NY_edge_grid.txt")
+  file, _ := os.Open(fileName)
   defer file.Close()
   scanner := bufio.NewScanner(file)
 
@@ -28,9 +28,9 @@ func readFetchSmallValue(server *libfss.Fss, serverNum byte, fssKey libfss.FssKe
 
 // Runs FSS on (matches) the 0th element of line, returns the 1st element.
 // Answer is base64-encoded int array, where each int represents an edge.
-func readFetchLargeValue(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyEq2P) string {
-  ans := make([]int, 50000) // TODO: make smarter
-  file, _ := os.Open("./routing_data/NY_zones.txt")
+func readOneFetchLarge(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyEq2P, fileName string, fetchSize int) string {
+  ans := make([]int, fetchSize)
+  file, _ := os.Open(fileName)
   defer file.Close()
   scanner := bufio.NewScanner(file)
 
@@ -51,6 +51,39 @@ func readFetchLargeValue(server *libfss.Fss, serverNum byte, fssKey libfss.FssKe
       ans[i] += int(byteArray[i]) * fssVal
     }
 
+  }
+  // fmt.Println("answer before transmit: ", ans)
+  fmt.Println("maxBytes: ", maxBytes)
+  transmit := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(ans)), ","), "[]")
+  return transmit
+}
+
+// Runs FSS on (matches) the 0th element of line, returns the 1st element.
+// Answer is base64-encoded int array, where each int represents an edge.
+func readTwoFetchLarge(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyEq2P, fileName string, fetchSize int) string {
+  ans := make([]int, fetchSize)
+  file, _ := os.Open(fileName)
+  defer file.Close()
+  scanner := bufio.NewScanner(file)
+
+  maxBytes := 0
+
+  // Read file line by line, on each line evaluate PF on key
+  for scanner.Scan() {
+    line := strings.Split(scanner.Text(), " ")
+
+    val1, _ := strconv.Atoi(line[0])
+    val2, _ := strconv.Atoi(line[1])
+    key := PRIME1^val1+PRIME2^val2
+
+    byteArray := []byte(line[2])
+    if len(byteArray) > maxBytes {
+      maxBytes = len(byteArray)
+    }
+    fssVal := server.EvaluatePF(serverNum, fssKey, uint(key))
+    for i := range byteArray {
+      ans[i] += int(byteArray[i]) * fssVal
+    }
   }
   // fmt.Println("answer before transmit: ", ans)
   fmt.Println("maxBytes: ", maxBytes)
