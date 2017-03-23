@@ -20,11 +20,6 @@ const (
   PRIME2 = 5
 )
 
-func main() {
-  // makeQuery(0, 191397, 20)
-  makeQuery(1, 10, 20)
-}
-
 func makeQuery(queryType int, lookup uint, size uint) string {
   t0 := time.Now()
 
