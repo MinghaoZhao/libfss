@@ -28,8 +28,8 @@ func main() {
   fmt.Println("Finished creating graph")
   tnMap := getTransitNodes(os.Args[2], g)
 
-  gcopy := makeGraph(os.Args[1]) // TODO: copy g instead
-  getZones(os.Args[3], tnMap, gcopy) 
+  tnMap = getZones(os.Args[3], tnMap, g) 
+  fmt.Println(tnMap)
 }
 
 func makeGraph(travelDataFile string) goraph.Graph{
@@ -77,42 +77,52 @@ func getTransitNodes(transitNodeFile string, g goraph.Graph) map[goraph.Node]([]
   return tnMap
 }
 
-func getZones(loc string, tnMap map[goraph.Node]([]goraph.Node), gcopy goraph.Graph) {
+func getZones(loc string, tnMap map[goraph.Node]([]goraph.Node), g goraph.Graph) map[goraph.Node]([]goraph.Node) {
   // make queue for new nodes to expand
   type Next struct {
     enode goraph.Node // node to expand
     tnode goraph.Node // transit node enode corresponds to
     edge float64      // 
   }
-  queue := make(chan Next, gcopy.GetNodeCount())
+  queue := make(chan Next, g.GetNodeCount()*2)
+
+  // make map of node IDs to:
+  //  - Node, if it hasn't been included in a zone yet
+  //  - nil, if it has been included in a zone.
+  nodeMap := g.GetNodes()
 
   // populate queue with existing transit nodes
   for tn, _ := range tnMap {
     queue <- Next{tn, tn, 0}
   }
 
-  // repeat until all nodes have been added to zones (gcopy is empty)
-  for (gcopy.GetNodeCount() != 0) {
+  count := 0
+  nodeCount := g.GetNodeCount()
+  // repeat until all nodes have been added to zones
+  for (count < nodeCount) {
     next := <- queue
-    // Check that target node is in gcopy. If not, skip.
-    enode, err := gcopy.GetNode(next.enode.ID())
-    if (err == nil) {
-      fmt.Println("adding node: ", next.enode, " to zone for tn: ", next.tnode)
+    // Check if next node has been visited. If so, skip.
+    if (nodeMap[next.enode.ID()] != nil) {
       // add target node to transit node zone mapping
-      tnMap[next.tnode] = append(tnMap[next.tnode], enode)
+      fmt.Println("adding node: ", next.enode, " to zone for tn: ", next.tnode," count: ", count)
+      count++
+      // fmt.Println("transit node mapping: ", tnMap[next.tnode])
+      tnMap[next.tnode] = append(tnMap[next.tnode], next.enode)
       // get the children of target node, and add them to queue
-      targetsMap, err := gcopy.GetTargets(next.enode.ID())
+      targetsMap, err := g.GetTargets(next.enode.ID())
       checkErr(err)
-      for _, targetNode := range targetsMap {
-        queue <- Next{targetNode, next.tnode, 0}
+      for id, targetNode := range targetsMap {
+        if (nodeMap[id] != nil) {
+          queue <- Next{targetNode, next.tnode, 0}
+        } // else, check if it's in the same zone (?) and add edges (?)
       }
-      // delete target node from gcopy
-      gcopy.DeleteNode(next.enode.ID())
+      // mark next node as visited 
+      nodeMap[next.enode.ID()] = nil
     } else {
-      fmt.Println("Node ", next.enode, " has already been handled.")
+      fmt.Println("Node ", next.enode, " has already been visited.")
     }
   }
-  fmt.Println(tnMap)
+  return tnMap
 }
 
 func checkErr(e error) {
