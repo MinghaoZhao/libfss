@@ -28,8 +28,12 @@ func main() {
   fmt.Println("Finished creating graph")
   tnMap := getTransitNodes(os.Args[2], g)
 
-  tnMap = getZones(os.Args[3], tnMap, g) 
-  fmt.Println(tnMap)
+  // tnMap maps from transit nodes to all the nodes in their zone
+  // nodeMap maps from nodes to the transit node they're in
+  tnMap, nodeMap := getZones(tnMap, g) 
+  writeZones(os.Args[3], tnMap, nodeMap, g)
+
+  // writeShortestPaths(os.Args[4], tnMap, g)
 }
 
 func makeGraph(travelDataFile string) goraph.Graph{
@@ -77,7 +81,7 @@ func getTransitNodes(transitNodeFile string, g goraph.Graph) map[goraph.Node]([]
   return tnMap
 }
 
-func getZones(loc string, tnMap map[goraph.Node]([]goraph.Node), g goraph.Graph) map[goraph.Node]([]goraph.Node) {
+func getZones(tnMap map[goraph.Node]([]goraph.Node), g goraph.Graph) (map[goraph.Node]([]goraph.Node), map[goraph.ID]goraph.Node) {
   // make queue for new nodes to expand
   type Next struct {
     enode goraph.Node // node to expand
@@ -104,7 +108,7 @@ func getZones(loc string, tnMap map[goraph.Node]([]goraph.Node), g goraph.Graph)
     // Check if next node has been visited. If so, skip.
     if (nodeMap[next.enode.ID()] == next.enode) {
       // add target node to transit node zone mapping
-      fmt.Println("adding node: ", next.enode, " to zone for tn: ", next.tnode," count: ", count)
+      // fmt.Println("adding node: ", next.enode, " to zone for tn: ", next.tnode," count: ", count)
       count++
       tnMap[next.tnode] = append(tnMap[next.tnode], next.enode)
       // get the children of target node, and add them to queue
@@ -113,15 +117,48 @@ func getZones(loc string, tnMap map[goraph.Node]([]goraph.Node), g goraph.Graph)
       for id, targetNode := range targetsMap {
         if ((nodeMap[id] == targetNode) && (targetNode != next.tnode)) {
           queue <- Next{targetNode, next.tnode, 0}
-        } // else, check if it's in the same zone (?) and add edges (?)
+        } else {
+          // check if it's in the same zone (?) and add edges (?)
+        }
       }
       // mark next node as visited 
       nodeMap[next.enode.ID()] = next.tnode
-    } else {
-      fmt.Println("Node ", next.enode, " has already been visited.")
-    }
+    } 
   }
-  return tnMap
+  return tnMap, nodeMap
+}
+
+func writeZones(zonesFile string, tnMap map[goraph.Node]([]goraph.Node), 
+                nodeMap map[goraph.ID]goraph.Node, g goraph.Graph) {
+  writef, _ := os.Create(zonesFile)
+  writer := bufio.NewWriter(writef)
+  // // writer.writeString()
+
+  outputMap := make(map[goraph.Node]([]string))
+
+  // iterate through transit nodes
+  for tn, nodes := range tnMap {
+    // iterate through nodes in each transit node zone
+    for _, node := range nodes {
+      // get targets of each node
+      targets, err := g.GetTargets(node.ID())
+      checkErr(err)
+      for targetID, _ := range targets {
+        // check if target is also in the same transit node zone
+        if nodeMap[targetID] == tn {
+          // add the edge from node -> target to the edges in transit node zone
+          weight, err := g.GetWeight(targetID, node.ID())
+          checkErr(err)
+          weightstr := strconv.FormatFloat(weight, 'g', -1, 32)
+          edge := targetID.String() + "-" + tn.String() + "-" + weightstr
+          outputMap[tn] = append(outputMap[tn], edge)
+        }
+      }
+    }
+    edges := strings.Join(outputMap[tn], " ")
+    writer.WriteString(tn.String() + " " + edges + "\n")
+  }
+  writer.Flush()
 }
 
 func checkErr(e error) {
