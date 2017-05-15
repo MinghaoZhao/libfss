@@ -88,7 +88,7 @@ func getZones(loc string, tnMap map[goraph.Node]([]goraph.Node), g goraph.Graph)
 
   // make map of node IDs to:
   //  - Node, if it hasn't been included in a zone yet
-  //  - nil, if it has been included in a zone.
+  //  - its transit node, if it has been included in a transit node zone.
   nodeMap := g.GetNodes()
 
   // populate queue with existing transit nodes
@@ -102,22 +102,21 @@ func getZones(loc string, tnMap map[goraph.Node]([]goraph.Node), g goraph.Graph)
   for (count < nodeCount) {
     next := <- queue
     // Check if next node has been visited. If so, skip.
-    if (nodeMap[next.enode.ID()] != nil) {
+    if (nodeMap[next.enode.ID()] == next.enode) {
       // add target node to transit node zone mapping
       fmt.Println("adding node: ", next.enode, " to zone for tn: ", next.tnode," count: ", count)
       count++
-      // fmt.Println("transit node mapping: ", tnMap[next.tnode])
       tnMap[next.tnode] = append(tnMap[next.tnode], next.enode)
       // get the children of target node, and add them to queue
       targetsMap, err := g.GetTargets(next.enode.ID())
       checkErr(err)
       for id, targetNode := range targetsMap {
-        if (nodeMap[id] != nil) {
+        if ((nodeMap[id] == targetNode) && (targetNode != next.tnode)) {
           queue <- Next{targetNode, next.tnode, 0}
         } // else, check if it's in the same zone (?) and add edges (?)
       }
       // mark next node as visited 
-      nodeMap[next.enode.ID()] = nil
+      nodeMap[next.enode.ID()] = next.tnode
     } else {
       fmt.Println("Node ", next.enode, " has already been visited.")
     }
