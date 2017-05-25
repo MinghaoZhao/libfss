@@ -7,10 +7,12 @@ import (
   "strings"
   "github.com/cathieyun/libfss/libfss"
   "fmt"
+  "encoding/binary"
+  "crypto/sha256"
 )
 
 // Runs FSS on (matches) the 1st element of line (key), returns the 3rd element (val).
-func readOneFetchSmall(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyEq2P, fileName string) string {
+func readIntFetchSmall(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyEq2P, fileName string) string {
   var ans int = 0
   file, _ := os.Open(fileName)
   defer file.Close()
@@ -28,7 +30,7 @@ func readOneFetchSmall(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyE
 
 // Runs FSS on (matches) the 0th element of line, returns the 1st element.
 // Answer is base64-encoded int array, where each int represents an edge.
-func readOneFetchLarge(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyEq2P, fileName string, fetchSize int) string {
+func readIntFetchLarge(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyEq2P, fileName string, fetchSize int) string {
   ans := make([]int, fetchSize)
   file, _ := os.Open(fileName)
   defer file.Close()
@@ -39,7 +41,7 @@ func readOneFetchLarge(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyE
   // Read file line by line, on each line evaluate PF on key
   for scanner.Scan() {
     split := strings.SplitAfterN(scanner.Text(), " ", 2)
-    fmt.Println("split: ", split)
+    // fmt.Println("split: ", split)
     key, _ := strconv.Atoi(strings.TrimSpace(split[0]))
 
     byteArray := []byte(split[1])
@@ -60,7 +62,7 @@ func readOneFetchLarge(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyE
 
 // Runs FSS on (matches) the 0th element of line, returns the 1st element.
 // Answer is base64-encoded int array, where each int represents an edge.
-func readTwoFetchLarge(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyEq2P, fileName string, fetchSize int) string {
+func readStringFetchLarge(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyEq2P, fileName string, fetchSize int) string {
   ans := make([]int, fetchSize)
   file, _ := os.Open(fileName)
   defer file.Close()
@@ -72,9 +74,9 @@ func readTwoFetchLarge(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyE
   for scanner.Scan() {
     line := strings.Split(scanner.Text(), " ")
 
-    val1, _ := strconv.Atoi(line[0])
-    val2, _ := strconv.Atoi(line[1])
-    key := PRIME1^val1+PRIME2^val2
+    key := stringToInt(line[0]+"-"+line[1])
+    fmt.Println("merged numbers: "+line[0]+"-"+line[1])
+    fmt.Println(key)
 
     byteArray := []byte(line[2])
     if len(byteArray) > maxBytes {
@@ -89,4 +91,11 @@ func readTwoFetchLarge(server *libfss.Fss, serverNum byte, fssKey libfss.FssKeyE
   fmt.Println("maxBytes: ", maxBytes)
   transmit := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(ans)), ","), "[]")
   return transmit
+}
+
+func stringToInt(s string) uint {
+  h := sha256.New()
+  h.Write([]byte(s))
+  num := binary.LittleEndian.Uint32(h.Sum(nil))
+  return uint(num)
 }

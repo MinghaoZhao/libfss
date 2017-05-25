@@ -8,21 +8,21 @@ import (
   "github.com/cathieyun/libfss/libfss"
   "encoding/json"
   "encoding/base64"
+  "encoding/binary"
   "time"
   "strings"
   "bytes"
+  "crypto/sha256"
 )
 
 const (
   CONN_HOST = "localhost"
   CONN_START_PORT = 8000
-  PRIME1 = 3
-  PRIME2 = 5
 )
 
 func main() {
   // makeQuery(0, 191397, 20)
-  makeQuery(1, 10, 20)
+  makeQuery(3, 10, 20)
 }
 
 func makeQuery(queryType int, lookup uint, size uint) string {
@@ -41,12 +41,12 @@ func makeQuery(queryType int, lookup uint, size uint) string {
 
   t1 := time.Now()
   fmt.Printf("The call took %v to run.\n", t1.Sub(t0))
-  if queryType == 0 {
+  if queryType == 2 {
     int0, _ := strconv.Atoi(ans0)
     int1, _ := strconv.Atoi(ans1)
-    fmt.Println("answer for querytype 0: ", int0 + int1)
+    fmt.Println("answer for querytype 2: ", int0 + int1)
     return strconv.Itoa(int0 + int1)
-  } else if queryType == 1 {
+  } else if queryType == 3 {
     received0 := strings.Split(ans0,",")
     received1 := strings.Split(ans1,",")
     parsed := make([]byte, len(received0))
@@ -55,9 +55,9 @@ func makeQuery(queryType int, lookup uint, size uint) string {
       num1, _ := strconv.Atoi(received1[i])
       parsed[i] = byte(num0 + num1)
     }
-    fmt.Println("answer for querytype 1: ",string(parsed))
+    fmt.Println("answer for querytype 3: ",string(parsed))
     return string(bytes.Trim(parsed, "\x00"))
-  } else if queryType == 2 {
+  } else if queryType == 4 {
     received0 := strings.Split(ans0,",")
     received1 := strings.Split(ans1,",")
     parsed := make([]byte, len(received0))
@@ -66,14 +66,17 @@ func makeQuery(queryType int, lookup uint, size uint) string {
       num1, _ := strconv.Atoi(received1[i])
       parsed[i] = byte(num0 + num1)
     }
-    fmt.Println("answer for querytype 2: ",string(parsed))
+    fmt.Println("answer for querytype 4: ",string(parsed))
     return string(bytes.Trim(parsed, "\x00"))    
   }
   return ""
 }
 
-func combineTwoValues(val1 uint, val2 uint) uint {
-  return PRIME1^val1 + PRIME2^val2
+func stringToInt(s string) uint {
+  h := sha256.New()
+  h.Write([]byte(s))
+  num := binary.LittleEndian.Uint32(h.Sum(nil))
+  return uint(num)
 }
 
 func queryServer(c chan string, queryType, fssKey, prfKeys, numBits string, serverNum int) {
